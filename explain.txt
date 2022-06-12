@@ -77,3 +77,7 @@ of the element when instantiated.
 
 ATTACHING DATA TO DOM NODES
 
+1: in showMoreInfoHandler, when we call it with moreInfoButton,
+we need to bind it with this.
+Otherwise, this will refer to something different when called
+in getElementById

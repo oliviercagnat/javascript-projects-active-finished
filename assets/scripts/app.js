@@ -11,6 +11,7 @@ class DOMHelper {
     const element = document.getElementById(elementId);
     const destinationElement = document.querySelector(newDestinationSelector);
     destinationElement.append(element);
+    element.scrollIntoView({ behavior: 'smooth' });
   }
 }
 
@@ -41,8 +42,8 @@ class Component {
 }
 
 class Tooltip extends Component {
-  constructor(closeNotifierFunction, text) {
-    super();
+  constructor(closeNotifierFunction, text, hostElementId) {
+    super(hostElementId);
     this.closeNotifier = closeNotifierFunction;
     this.text = text;
     this.create();
@@ -56,7 +57,24 @@ class Tooltip extends Component {
   create() {
     const tooltipElement = document.createElement('div');
     tooltipElement.className = 'card';
-    tooltipElement.textContent = this.text;
+    // tooltipElement.textContent = this.text;
+    const tooltipTemplate = document.getElementById('tooltip');
+    const tooltipBody = document.importNode(tooltipTemplate.content, true);
+    tooltipBody.querySelector('p').textContent = this.text;
+    tooltipElement.append(tooltipBody);
+
+    const hostElementPosLeft = this.hostElement.offsetLeft;
+    const hostElementPostTop = this.hostElement.offsetTop;
+    const hostElementPosHeight = this.hostElement.clientHeight;
+    const parentElementScrolling = this.hostElement.parentElement.scrollTop;
+
+    const x = hostElementPosLeft + 20;
+    const y = hostElementPostTop + hostElementPosHeight - parentElementScrolling - 10;
+
+    tooltipElement.style.position = 'absolute';
+    tooltipElement.style.left = `${x}px`;
+    tooltipElement.style.top = `${y}px`;
+
     tooltipElement.addEventListener('click', this.closeTooltip);
     this.element = tooltipElement;
   }
@@ -80,7 +98,7 @@ class ProjectItem {
     const tooltipText = projectElement.dataset.extraInfo;
     const tooltip = new Tooltip(() => {
       this.hasActiveToolTip = false;
-    }, tooltipText);
+    }, tooltipText, this.id);
     tooltip.attach();
     this.hasActiveToolTip = true;
   }
@@ -138,8 +156,25 @@ class App {
   static init() {
     const activeProjectsList = new ProjectList('active');
     const finishedProjectsList = new ProjectList('finished');
-    activeProjectsList.setSwitchHandlerFunction(finishedProjectsList.addProject.bind(finishedProjectsList));
-    finishedProjectsList.setSwitchHandlerFunction(activeProjectsList.addProject.bind(activeProjectsList));
+    activeProjectsList.setSwitchHandlerFunction(
+      finishedProjectsList.addProject.bind(finishedProjectsList),
+    );
+    finishedProjectsList.setSwitchHandlerFunction(
+      activeProjectsList.addProject.bind(activeProjectsList),
+    );
+
+    const timerId = setTimeout(this.startAnalytics, 3000);
+
+    document.getElementById('stop-analytics-btn').addEventListener('click', () => {
+      clearTimeout(timerId);
+    });
+  }
+
+  static startAnalytics() {
+    const analyticsScript = document.createElement('script');
+    analyticsScript.src = 'assets/scripts/analytics.js';
+    analyticsScript.defer = true;
+    document.head.append(analyticsScript);
   }
 }
 
