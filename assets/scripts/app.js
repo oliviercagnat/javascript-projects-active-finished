@@ -1,6 +1,12 @@
 /* eslint-disable max-len */
 /* eslint-disable max-classes-per-file */
 class DOMHelper {
+  static clearEventListeners(element) {
+    const clonedElement = element.cloneNode(true);
+    element.replaceWith(clonedElement);
+    return clonedElement;
+  }
+
   static moveElement(elementId, newDestinationSelector) {
     const element = document.getElementById(elementId);
     const destinationElement = document.querySelector(newDestinationSelector);
@@ -11,19 +17,26 @@ class DOMHelper {
 class Tooltip {}
 
 class ProjectItem {
-  constructor(id, updateProjectListsFunction) {
+  constructor(id, updateProjectListsFunction, type) {
     this.id = id;
     this.updateProjectListsHandler = updateProjectListsFunction;
     this.connectMoreInfoButton();
-    this.connectSwitchButton();
+    this.connectSwitchButton(type);
   }
 
   connectMoreInfoButton() {}
 
-  connectSwitchButton() {
+  connectSwitchButton(type) {
     const projectItemElement = document.getElementById(this.id);
-    const switchButton = projectItemElement.querySelector('button:last-of-type');
+    let switchButton = projectItemElement.querySelector('button:last-of-type');
+    switchButton = DOMHelper.clearEventListeners(switchButton);
+    switchButton.textContent = type === 'active' ? 'Finish' : 'Activate';
     switchButton.addEventListener('click', this.updateProjectListsHandler.bind(null, this.id));
+  }
+
+  update(updateProjectListsFunction, type) {
+    this.updateProjectListsHandler = updateProjectListsFunction;
+    this.connectSwitchButton(type);
   }
 }
 
@@ -34,9 +47,8 @@ class ProjectList {
     this.type = type;
     const prjItems = document.querySelectorAll(`#${type}-projects li`);
     for (const prjItem of prjItems) {
-      this.projects.push(new ProjectItem(prjItem.id, this.switchProject.bind(this)));
+      this.projects.push(new ProjectItem(prjItem.id, this.switchProject.bind(this), this.type));
     }
-    console.log(this.projects);
   }
 
   setSwitchHandlerFunction(switchHandlerFunction) {
@@ -44,10 +56,9 @@ class ProjectList {
   }
 
   addProject(project) {
-    console.log(this);
-    console.log(project);
     this.projects.push(project);
     DOMHelper.moveElement(project.id, `#${this.type}-projects ul`);
+    project.update(this.switchProject.bind(this));
   }
 
   switchProject(projectId) {
@@ -102,4 +113,26 @@ App.init();
 
 // 7: passing the ID
 // In ProjectItem, we should bind the ID in the connectSwitchButton when we trigger
-// the eventListener.
+// the eventListener. The ID is sent to switchProject.
+
+// PROBLEM: switching back
+// 1: when clicking, once we switched the item one time, we get an error when switching again
+// It's because we still have the same eventListener than when we created the button item
+// of the original List.
+// -> we need to mae sure that when we switch a project, it also update the projectList.
+
+// 2: we create update method with new switchProject (same as when we create ProjectItem)
+// We also pass the type. So it permits us to create a new EventListener.
+// But we got a memory leak since we still have the old one existing.
+
+// 3: We need to clear the old eventListener before.
+// we create in DOMHelper a clearEventListeners with the element as parameter
+// We clone the node and replace it, so we ditch the old eventListener.
+
+// 4: In the connectSwitchButton, we clear the old listener.
+// We call the DOMHelper, and pass the switchButton as parameter.
+// We set the switchBtn equal to the newly returned button.
+
+// 5: Update the textContent
+// If the type is equal to active, we put Finish, otherwise activate.
+// W need to pass the type, when creating the ProjectItem.
