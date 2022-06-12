@@ -14,9 +14,34 @@ class DOMHelper {
   }
 }
 
-class Tooltip {}
+class Tooltip {
+  constructor(closeNotifierFunction) {
+    this.closeNotifier = closeNotifierFunction;
+  }
+
+  closeTooltip = () => {
+    this.detach();
+    this.closeNotifier();
+  };
+
+  detach() {
+    this.element.remove();
+    // this.element.parentElementt.removeChild(this.element);
+  }
+
+  attach() {
+    const tooltipElement = document.createElement('div');
+    tooltipElement.className = 'card';
+    tooltipElement.textContent = 'DUMMY!';
+    tooltipElement.addEventListener('click', this.closeTooltip);
+    this.element = tooltipElement;
+    document.body.append(tooltipElement);
+  }
+}
 
 class ProjectItem {
+  hasActiveToolTip = false;
+
   constructor(id, updateProjectListsFunction, type) {
     this.id = id;
     this.updateProjectListsHandler = updateProjectListsFunction;
@@ -24,7 +49,22 @@ class ProjectItem {
     this.connectSwitchButton(type);
   }
 
-  connectMoreInfoButton() {}
+  showMoreInfoHandler() {
+    if (this.hasActiveToolTip) {
+      return;
+    }
+    const tooltip = new Tooltip(() => {
+      this.hasActiveToolTip = false;
+    });
+    tooltip.attach();
+    this.hasActiveToolTip = true;
+  }
+
+  connectMoreInfoButton() {
+    const projectItemElement = document.getElementById(this.id);
+    const moreInfoButton = projectItemElement.querySelector('button:first-of-type');
+    moreInfoButton.addEventListener('click', this.showMoreInfoHandler);
+  }
 
   connectSwitchButton(type) {
     const projectItemElement = document.getElementById(this.id);
@@ -79,6 +119,8 @@ class App {
 }
 
 App.init();
+
+// HANDLING THE SWITCH BUTTON
 
 // How to call switchHandlerFunction
 // 1: We need to call addProject()
@@ -135,4 +177,14 @@ App.init();
 
 // 5: Update the textContent
 // If the type is equal to active, we put Finish, otherwise activate.
-// W need to pass the type, when creating the ProjectItem.
+// We need to pass the type, when creating the ProjectItem.
+
+// HANDLING THE MORE INFO BUTTON
+
+// 1: We use arrow function
+// "this" will always refer to the class it has been added.
+
+// 2: We limit the tooltip box to just 1
+// We create an hasActiveTooltip parameter.
+// we call a method we receiver in Tooltip, closeNotifierFunction
+//
